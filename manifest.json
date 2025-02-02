@@ -1,0 +1,23 @@
+{
+    "id": "23219a53-4b44-4ce7-a50c-d48a0c4931c7",
+    "version": "1.0.0",
+    "platform": "all",
+    "arch": "all",
+    "name": "cbz",
+    "logo": "/logo.png",
+    "keywords": [
+        "icns"
+    ],
+    "devTools": false,
+    "preview": {
+        "icns": {
+            "thumbnail": {
+                "path": "thumbnail/icns.js",
+                "size": 400
+            },
+            "viewer": {
+                "path": "viewer/icns.html"
+            }
+        }
+    }
+}
