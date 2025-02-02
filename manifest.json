@@ -6,17 +6,17 @@
     "name": "cbz",
     "logo": "/logo.png",
     "keywords": [
-        "icns"
+        "cbz"
     ],
     "devTools": false,
     "preview": {
-        "icns": {
+        "cbz": {
             "thumbnail": {
-                "path": "thumbnail/icns.js",
+                "path": "thumbnail/cbz.js",
                 "size": 400
             },
             "viewer": {
-                "path": "viewer/icns.html"
+                "path": "viewer/cbz.html"
             }
         }
     }
