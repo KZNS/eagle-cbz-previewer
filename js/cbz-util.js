@@ -10,27 +10,31 @@ function isImageFile(filePath) {
     const ext = path.extname(filePath).toLowerCase();
     return IMAGE_EXTENSIONS.includes(ext);
 }
+async function getCbzCoverBuffer(src) {
+    try {
+        let buffer = await fs.promises.readFile(src);
+        const zip = await jszip.loadAsync(buffer);
+
+        for (const relativePath of Object.keys(zip.files)) {
+            const file = zip.files[relativePath];
+            if (!file.dir && isImageFile(relativePath)) {
+                // 返回图片的 Buffer 数据
+                return file.async('nodebuffer');
+            }
+        }
+
+        throw new Error('Cannot find the cover image in the CBZ file.');
+    } catch (err) {
+        throw err;
+    }
+}
 
 async function cbzCover(src, dist) {
     return new Promise(async (resolve, reject) => {
         try {
-            let buffer = await fs.promises.readFile(src);
-            const zip = await jszip.loadAsync(buffer);
-            let cover = null;
-            for (const relativePath of Object.keys(zip.files)) {
-                const file = zip.files[relativePath];
-                if (!file.dir && isImageFile(relativePath)) {
-                    cover = file;
-                    break;
-                }
-            }
-            if (cover) {
-                const data = await cover.async('nodebuffer');
-                //await sharp(data).toFormat('png').toFile(dist);
-                await fs.promises.writeFile(dist, data);
-                return resolve();
-            }
-            return reject(new Error(`Can not find the cover image in the cbz file.`));
+            let cover = await getCbzCoverBuffer(src);
+            await sharp(cover).toFormat('png').toFile(dist);
+            return resolve();
         }
         catch (err) {
             return reject(err);
@@ -41,4 +45,5 @@ async function cbzCover(src, dist) {
 
 module.exports = {
     cbzCover: cbzCover,
+    getCbzCoverBuffer: getCbzCoverBuffer,
 };

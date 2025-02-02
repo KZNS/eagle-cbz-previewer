@@ -40,13 +40,14 @@
 		// 👍 Avoid loading for too long, and UI has no content
 		viewer.src = filePath.replace(".cbz", "_thumbnail.png");
 
-		// 2. Load the file and replace thumbnail
-		// (async function() {
-		// 	const icns = require('./../js/icns-util.js');
-		// 	let buffer = await icns.icns2buffer(filePath);
-		// 	let base64 = `data:image/png;base64,${buffer.toString('base64')}`;
-		// 	viewer.src = base64;
-		// })();
+		//2. Load the file and replace thumbnail
+		(async function () {
+			const cbz = require('./../js/cbz-util.js');
+			const sharp = require('sharp');
+			let buffer = await sharp(await cbz.getCbzCoverBuffer(filePath)).toFormat('png').toBuffer();
+			let base64 = `data:image/png;base64,${buffer.toString('base64')}`;
+			viewer.src = base64;
+		})();
 	</script>
 </body>
 
