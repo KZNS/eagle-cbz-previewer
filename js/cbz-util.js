@@ -15,7 +15,7 @@ async function getCbzCoverBuffer(src) {
         let buffer = await fs.promises.readFile(src);
         const zip = await jszip.loadAsync(buffer);
 
-        for (const relativePath of Object.keys(zip.files)) {
+        for (const relativePath of Object.keys(zip.files).sort()) {
             const file = zip.files[relativePath];
             if (!file.dir && isImageFile(relativePath)) {
                 // 返回图片的 Buffer 数据
