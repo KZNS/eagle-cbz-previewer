@@ -4,6 +4,7 @@ const path = require('path');
 const sharp = require('sharp');
 
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
+const COVER_KEYWORD = ['cover', '封面'];
 
 // 判断文件是否是图片
 function isImageFile(filePath) {
@@ -15,15 +16,25 @@ async function getCbzCoverBuffer(src) {
         let buffer = await fs.promises.readFile(src);
         const zip = await jszip.loadAsync(buffer);
 
-        for (const relativePath of Object.keys(zip.files).sort()) {
-            const file = zip.files[relativePath];
+        let cover = null;
+        for (const [relativePath, file] of Object.entries(zip.files).sort()) {
             if (!file.dir && isImageFile(relativePath)) {
-                // 返回图片的 Buffer 数据
-                return file.async('nodebuffer');
+                if (!cover) {
+                    cover = file;
+                }
+                const lowerCasePath = relativePath.toLowerCase();
+                if (COVER_KEYWORD.some(keyword => lowerCasePath.includes(keyword))) {
+                    cover = file;
+                    break;
+                }
             }
         }
 
-        throw new Error('Cannot find the cover image in the CBZ file.');
+        if (cover)
+            return cover.async('nodebuffer');
+        else
+            throw new Error('Cannot find the cover image in the CBZ file.');
+
     } catch (err) {
         throw err;
     }
