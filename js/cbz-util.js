@@ -1,5 +1,4 @@
-const fs = require('fs');
-const jszip = require('jszip');
+const yauzl = require('yauzl');
 const path = require('path');
 const sharp = require('sharp');
 
@@ -11,33 +10,61 @@ function isImageFile(filePath) {
     const ext = path.extname(filePath).toLowerCase();
     return IMAGE_EXTENSIONS.includes(ext);
 }
+function isCoverFile(filePath) {
+    const lowerCasePath = filePath.toLowerCase();
+    return COVER_KEYWORD.some(keyword => lowerCasePath.includes(keyword));
+}
+
 async function getCbzCoverBuffer(src) {
-    try {
-        let buffer = await fs.promises.readFile(src);
-        const zip = await jszip.loadAsync(buffer);
-
-        let cover = null;
-        for (const [relativePath, file] of Object.entries(zip.files).sort()) {
-            if (!file.dir && isImageFile(relativePath)) {
-                if (!cover) {
-                    cover = file;
-                }
-                const lowerCasePath = relativePath.toLowerCase();
-                if (COVER_KEYWORD.some(keyword => lowerCasePath.includes(keyword))) {
-                    cover = file;
-                    break;
-                }
-            }
+    return new Promise(async (resolve, reject) => {
+        try {
+            yauzl.open(src, { lazyEntries: true }, function (err, zipfile) {
+                if (err) throw err;
+                let imageEntry = null;
+                let isCover = false;
+                let fileBuffer = [];
+                zipfile.readEntry();
+                zipfile.on("entry", function (entry) {
+                    if (!entry.fileName.endsWith('/') && isImageFile(entry.fileName)) {
+                        let read = false;
+                        if (!imageEntry) {
+                            read = true;
+                        } else {
+                            if ((isCover && isCoverFile(entry.fileName) && entry.fileName < imageEntry.fileName) ||
+                                (!isCover && (isCoverFile(entry.fileName) || entry.fileName < imageEntry.fileName))) {
+                                read = true;
+                            }
+                        }
+                        // 打开该条目并读取数据
+                        if (read) {
+                            imageEntry = entry;
+                            isCover = isCoverFile(entry.fileName);
+                            zipfile.openReadStream(entry, (err, readStream) => {
+                                if (err) throw err;
+                                fileBuffer = [];
+                                readStream.on("data", (chunk) => {
+                                    fileBuffer.push(chunk);
+                                });
+                                readStream.on("end", () => {
+                                    zipfile.readEntry();
+                                });
+                            });
+                        }
+                        else {
+                            zipfile.readEntry();
+                        }
+                    } else {
+                        zipfile.readEntry();
+                    }
+                });
+                zipfile.on("end", function () {
+                    resolve(Buffer.concat(fileBuffer));
+                });
+            });
+        } catch (err) {
+            reject(err);
         }
-
-        if (cover)
-            return cover.async('nodebuffer');
-        else
-            throw new Error('Cannot find the cover image in the CBZ file.');
-
-    } catch (err) {
-        throw err;
-    }
+    });
 }
 
 async function cbzCover(src, dist) {
