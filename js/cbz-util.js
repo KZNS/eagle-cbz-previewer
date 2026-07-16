@@ -4,6 +4,10 @@ const sharp = require('sharp');
 
 const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
 const COVER_KEYWORD = ['cover', '封面'];
+const FILE_NAME_COLLATOR = new Intl.Collator(undefined, {
+    numeric: true,
+    sensitivity: 'base',
+});
 
 // 判断文件是否是图片
 function isImageFile(filePath) {
@@ -13,6 +17,9 @@ function isImageFile(filePath) {
 function isCoverFile(filePath) {
     const lowerCasePath = filePath.toLowerCase();
     return COVER_KEYWORD.some(keyword => lowerCasePath.includes(keyword));
+}
+function isFileNameBefore(filePath, otherFilePath) {
+    return FILE_NAME_COLLATOR.compare(filePath, otherFilePath) < 0;
 }
 
 async function getCbzCoverBuffer(src) {
@@ -30,8 +37,8 @@ async function getCbzCoverBuffer(src) {
                         if (!imageEntry) {
                             read = true;
                         } else {
-                            if ((isCover && isCoverFile(entry.fileName) && entry.fileName < imageEntry.fileName) ||
-                                (!isCover && (isCoverFile(entry.fileName) || entry.fileName < imageEntry.fileName))) {
+                            if ((isCover && isCoverFile(entry.fileName) && isFileNameBefore(entry.fileName, imageEntry.fileName)) ||
+                                (!isCover && (isCoverFile(entry.fileName) || isFileNameBefore(entry.fileName, imageEntry.fileName)))) {
                                 read = true;
                             }
                         }
